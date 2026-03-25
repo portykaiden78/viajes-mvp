@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">viajesPorty</string>
+    <string name="title_activity_main">viajesPorty</string>
+    <string name="package_name">com.porty.viajes</string>
+    <string name="custom_url_scheme">com.porty.viajes</string>
+</resources>
