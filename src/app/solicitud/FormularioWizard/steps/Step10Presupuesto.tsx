@@ -2,6 +2,13 @@
 
 import { StepPropsWithUpdate } from "../types";
 
+const OPCIONES = [
+  { value: "bajo", label: "Bajo (€)" },
+  { value: "medio", label: "Medio (€€)" },
+  { value: "alto", label: "Alto (€€€)" },
+  { value: "premium", label: "Premium (€€€€)" },
+];
+
 export default function Step10Presupuesto({
   form,
   update,
@@ -11,50 +18,61 @@ export default function Step10Presupuesto({
 }: StepPropsWithUpdate) {
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900">
-        ¿Cuál es tu presupuesto aproximado?
-      </h2>
 
-      <p className="text-gray-600 text-sm">
-        Esto nos ayuda a ajustar el tipo de actividades, alojamiento y ritmo del viaje.
-      </p>
-
-      <div className="space-y-3">
-        <label className="block text-sm font-medium text-gray-700">
-          Selecciona una opción
-        </label>
-
-        <select
-          value={form.presupuesto}
-          onChange={(e) => update("presupuesto", e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 text-gray-900 bg-white"
-        >
-          <option value="">Selecciona...</option>
-          <option value="bajo">Bajo (€)</option>
-          <option value="medio">Medio (€€)</option>
-          <option value="alto">Alto (€€€)</option>
-          <option value="premium">Premium (€€€€)</option>
-        </select>
+      {/* Título */}
+      <div>
+        <h2 className="text-3xl font-semibold text-gray-900">
+          ¿Cuál es tu presupuesto aproximado?
+        </h2>
+        <p className="text-base text-gray-500 mt-1">
+          Esto nos ayuda a ajustar actividades, alojamiento y ritmo del viaje.
+        </p>
       </div>
 
-      <div className="flex justify-between pt-4">
+      {/* Chips de presupuesto */}
+      <div className="grid grid-cols-2 gap-3">
+        {OPCIONES.map((op) => {
+          const selected = form.presupuesto === op.value;
+
+          return (
+            <button
+              key={op.value}
+              type="button"
+              onClick={() => update("presupuesto", op.value)}
+              className={`px-4 py-3 rounded-xl border text-sm font-medium transition-all shadow-sm
+                ${selected
+                  ? "bg-blue-600 text-white border-blue-600 shadow-md scale-[1.02]"
+                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+                }`}
+            >
+              {op.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Botones navegación */}
+      <div className="flex gap-3 pt-2">
         {back && (
           <button
+            type="button"
             onClick={back}
-            className="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-100"
+            className="w-1/3 py-3 rounded-xl border border-gray-300 
+                       text-gray-700 font-medium hover:bg-gray-100 transition"
           >
             Atrás
           </button>
         )}
 
         <button
+          type="button"
           onClick={next}
           disabled={!isValid}
-          className={`px-4 py-2 rounded-lg text-white ${
-            isValid
-              ? "bg-green-600 hover:bg-green-700"
-              : "bg-gray-400 cursor-not-allowed"
-          }`}
+          className={`flex-1 py-3 rounded-xl font-semibold transition-all
+            ${isValid
+              ? "bg-blue-600 text-white shadow hover:bg-blue-700"
+              : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            }`}
         >
           Siguiente
         </button>
