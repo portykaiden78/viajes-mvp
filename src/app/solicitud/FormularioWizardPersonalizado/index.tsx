@@ -4,20 +4,24 @@ import { useState, useMemo, useEffect } from "react";
 import StepWrapper from "./StepWrapper";
 import { FormDataType } from "./types";
 
-import Step1Origen from "./steps/Step1Origen";
+// IMPORTS DE LOS STEPS
+import Step1TipoViaje from "./steps/Step1TipoViaje";
 import Step2Destino from "./steps/Step2Destino";
-import Step3TipoViaje from "./steps/Step3TipoViaje";
-import Step4NumViajeros from "./steps/Step4NumViajeros";
-import Step5Edades from "./steps/Step5Edades";
-import Step6Fechas from "./steps/Step6Fechas";
-import Step7Ritmo from "./steps/Step7Ritmo";
-import Step8Gastronomia from "./steps/Step8Gastronomia";
-import Step9Intereses from "./steps/Step9Intereses";
-import Step10Presupuesto from "./steps/Step10Presupuesto";
-import Step11Alojamiento from "./steps/Step11Alojamiento";
-import Step12Resumen from "./steps/Step12Resumen";
+import Step3Fechas from "./steps/Step3Fechas";
+import Step4Presupuesto from "./steps/Step4Presupuesto";
+import Step5Estilo from "./steps/Step5Estilo";
+import Step6Acompanado from "./steps/Step6Acompanado";
+import Step7Detalles from "./steps/Step7Detalles";
+import Step8Transporte from "./steps/Step8Transporte";
+import Step9Clima from "./steps/Step9Clima";
+import Step10Deporte from "./steps/Step10Deporte";
+import Step11Entorno from "./steps/Step11Entorno";
+import Step12Festivales from "./steps/Step12Festivales";
+import Step13Deportes from "./steps/Step13Deportes";
+import Step14Resumen from "./steps/StepFinalResumen";
 import StepFinalContacto from "./steps/StepFinalContacto";
 
+// VALIDACIONES
 import {
   validateStep1,
   validateStep2,
@@ -30,31 +34,61 @@ import {
   validateStep9,
   validateStep10,
   validateStep11,
+  validateStep13,
 } from "./validations";
 
-import { validateStep12 } from "./validations/step12";
+const TOTAL_STEPS = 15;
+const STORAGE_KEY = "wizardFormPersonalizado_v1";
 
-const TOTAL_STEPS = 13;
-const STORAGE_KEY = "wizardForm_v1";
-
-export default function FormularioWizard() {
+export default function FormularioWizardPersonalizado() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
 
+  // FORM COMPLETO
   const [form, setForm] = useState<FormDataType>({
-    origen: "",
+    tipoViaje: "",
     destino: "",
-    tipo_viaje: "",
-    num_viajeros: 1,
-    edades: [""],
-    fecha_inicio: "",
-    fecha_fin: "",
-    ritmo_viaje: "",
-    gastronomia: "",
-    intereses: [],
+    fechaInicio: "",
+    fechaFin: "",
+    fechasFlexibles: false,
+    cualquierFecha: false,
+
     presupuesto: "",
-    alojamiento: "",
+    estilo: [],
+    estiloOtro: "",
+
+    acompanado: "",
+    edadesFamilia: "",
+    numAmigos: "",
+    acompanadoOtro: "",
+
+    detalles: "",
+
+    transporte: [],
+    transporteOtro: "",
+
+    clima: "",
+    climaOtro: "",
+
+    deporteDiario: "",
+    deporteDiarioOtro: "",
+
+    entorno: [],
+    entornoOtro: "",
+
+    festivales: {
+      gusta: null,
+      estilos: [],
+    },
+    festivalesOtro: "",
+
+    eventosDeportivos: {
+      gusta: null,
+      deportes: [],
+    },
+    eventosDeportivosOtro: "",
+
     email: "",
     telefono: "",
   });
@@ -64,17 +98,17 @@ export default function FormularioWizard() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) setForm(JSON.parse(saved));
-    } catch { }
+    } catch {}
   }, []);
 
   // Guardar en localStorage
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
-    } catch { }
+    } catch {}
   }, [form]);
 
-  // Ocultar mensaje después de 3 segundos
+  // Ocultar mensaje
   useEffect(() => {
     if (!mensaje) return;
     const timer = setTimeout(() => setMensaje(null), 3000);
@@ -88,91 +122,106 @@ export default function FormularioWizard() {
   const next = () => setStep((s) => Math.min(TOTAL_STEPS, s + 1));
   const back = () => setStep((s) => Math.max(1, s - 1));
 
+  // Enviar formulario
   const handleSubmit = async () => {
     setLoading(true);
     setMensaje(null);
-  
+
     try {
       const fd = new FormData();
       Object.entries(form).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          fd.set(key, JSON.stringify(value)); // 👈 sin _json
+        if (typeof value === "object") {
+          fd.set(key, JSON.stringify(value));
         } else {
           fd.set(key, String(value));
         }
       });
-  
-      // 1) Crear solicitud
+
       const res = await fetch("/api/crear-solicitud", {
         method: "POST",
         body: fd,
       });
-  
+
       const data = await res.json();
-  
-      if (!res.ok || !data.id) {
+
+      if (!res.ok) {
         setMensaje("Error: " + data.error);
-        return;
+      } else {
+        setMensaje("Solicitud enviada correctamente");
+
+        // Reset
+        setForm({
+          tipoViaje: "",
+          destino: "",
+          fechaInicio: "",
+          fechaFin: "",
+          fechasFlexibles: false,
+          cualquierFecha: false,
+
+          presupuesto: "",
+          estilo: [],
+          estiloOtro: "",
+
+          acompanado: "",
+          edadesFamilia: "",
+          numAmigos: "",
+          acompanadoOtro: "",
+
+          detalles: "",
+
+          transporte: [],
+          transporteOtro: "",
+
+          clima: "",
+          climaOtro: "",
+
+          deporteDiario: "",
+          deporteDiarioOtro: "",
+
+          entorno: [],
+          entornoOtro: "",
+
+          festivales: {
+            gusta: null,
+            estilos: [],
+          },
+          festivalesOtro: "",
+
+          eventosDeportivos: {
+            gusta: null,
+            deportes: [],
+          },
+          eventosDeportivosOtro: "",
+
+          email: "",
+          telefono: "",
+        });
+
+        setStep(1);
       }
-  
-      // 2) Generar itinerario + enviar email
-      const res2 = await fetch("/api/generar-itinerario", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ travelRequestId: data.id }),
-      });
-  
-      const data2 = await res2.json();
-  
-      if (!res2.ok) {
-        setMensaje("Error generando itinerario: " + data2.error);
-        return;
-      }
-  
-      // 3) Todo OK
-      setMensaje("¡Tu itinerario ha sido enviado a tu correo!");
-  
-      // Reset del formulario
-      setForm({
-        origen: "",
-        destino: "",
-        tipo_viaje: "",
-        num_viajeros: 1,
-        edades: [""],
-        fecha_inicio: "",
-        fecha_fin: "",
-        ritmo_viaje: "",
-        gastronomia: "",
-        intereses: [],
-        presupuesto: "",
-        alojamiento: "",
-        email: "",
-        telefono: "",
-      });
-  
-      setStep(1);
     } finally {
       setLoading(false);
     }
   };
-  
 
   // Selección del componente del step
   const StepComponent = useMemo(() => {
     const steps: Record<number, any> = {
-      1: Step1Origen,
+      1: Step1TipoViaje,
       2: Step2Destino,
-      3: Step3TipoViaje,
-      4: Step11Alojamiento,
-      5: Step4NumViajeros,
-      6: Step5Edades,
-      7: Step6Fechas,
-      8: Step7Ritmo,
-      9: Step8Gastronomia,
-      10: Step10Presupuesto,
-      11: Step9Intereses,
-      12: Step12Resumen,
-      13: StepFinalContacto,
+      3: Step3Fechas,
+      4: Step4Presupuesto,
+      5: Step5Estilo,
+      6: Step6Acompanado,
+      7: Step7Detalles,
+      8: Step8Transporte,
+      9: Step9Clima,
+      10: Step10Deporte,
+      11: Step11Entorno,
+      12: Step12Festivales,
+      13: Step13Deportes,
+      14: Step14Resumen,
+      15: StepFinalContacto,
     };
     return steps[step];
   }, [step]);
@@ -183,16 +232,16 @@ export default function FormularioWizard() {
       1: validateStep1,
       2: validateStep2,
       3: validateStep3,
-      4: validateStep11,
-      5: validateStep4,
-      6: validateStep5,
-      7: validateStep6,
-      8: validateStep7,
-      9: validateStep8,
+      4: validateStep4,
+      5: validateStep5,
+      6: validateStep6,
+      7: validateStep7,
+      8: validateStep8,
+      9: validateStep9,
       10: validateStep10,
-      11: validateStep9,
-      12: validateStep12,
-      // Step 13 (contacto) se valida dentro del propio step
+      11: validateStep11,
+      13: validateStep13,
+      // Step 14 y 15 se validan internamente
     };
     return validators[step]?.(form) ?? true;
   })();
@@ -209,20 +258,20 @@ export default function FormularioWizard() {
         </div>
       )}
 
-      <div className="w-full max-w-md glass-card text-gray-900 rounded-3xl p-6 space-y-6">
+      <div className="w-full max-w-md glass-card text-white rounded-3xl p-6 space-y-6">
         {/* Barra de progreso */}
         <div>
           <div className="flex justify-between items-center mb-1">
             <span className="text-xs text-white/80">
               Paso {step} de {TOTAL_STEPS}
             </span>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-white/60">
               {Math.round(progress)}%
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
             <div
-              className="h-2 bg-blue-600 transition-all duration-300"
+              className="h-2 bg-blue-500 transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -230,21 +279,19 @@ export default function FormularioWizard() {
 
         {/* Contenido del Step */}
         <StepWrapper key={step}>
-          {step === 13 ? (
+          {step === 15 ? (
             <StepComponent
               form={form}
               update={update}
-              onSubmit={handleSubmit}
+              next={handleSubmit}
               back={back}
-              theme="light"
             />
-          ) : step === 12 ? (
+          ) : step === 14 ? (
             <StepComponent
               form={form}
               back={back}
-              onSubmit={() => setStep(13)}   // ✅ AHORA SÍ
+              onSubmit={() => setStep(15)}
               loading={loading}
-              isValid={isStepValid}
             />
           ) : (
             <StepComponent

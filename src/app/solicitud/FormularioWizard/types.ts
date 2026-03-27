@@ -11,21 +11,30 @@ export type FormDataType = {
   intereses: string[];
   presupuesto: string;
   alojamiento: string;
+  email: string;
+  telefono: string;
 };
 
 export type StepPropsBase = {
   form: FormDataType;
   back?: () => void;
-  isValid: boolean;
+  isValid?: boolean;
 };
 
 export type StepPropsWithUpdate = StepPropsBase & {
   update: (field: keyof FormDataType, value: any) => void;
-  next: () => void;
+  next: () => void;   // steps normales
 };
 
 export type StepPropsResumen = StepPropsBase & {
-  submit: () => Promise<void>;
+  onSubmit: () => void;   // resumen
   loading: boolean;
   mensaje: string | null;
 };
+
+export type StepPropsContacto = StepPropsBase & {
+  update: (field: keyof FormDataType, value: any) => void;
+  onSubmit: () => void;   // contacto
+};
+
+

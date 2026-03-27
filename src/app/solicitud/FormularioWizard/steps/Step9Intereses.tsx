@@ -14,7 +14,14 @@ const INTERESES = [
   "Gastronomía",
 ];
 
-export default function Step9Intereses({ form, update, next, back, isValid }: StepPropsWithUpdate) {
+export default function Step9Intereses({
+  form,
+  update,
+  next,
+  back,
+  isValid,
+}: StepPropsWithUpdate) {
+  
   const error = getStep9Error(form);
 
   const toggle = (i: string) => {
@@ -26,39 +33,67 @@ export default function Step9Intereses({ form, update, next, back, isValid }: St
   };
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">¿Qué te interesa?</h1>
+    <div className="space-y-6">
 
-      <div className="grid grid-cols-2 gap-3">
-        {INTERESES.map((i) => (
-          <button
-            key={i}
-            onClick={() => toggle(i)}
-            className={`p-3 rounded-xl border ${
-              form.intereses.includes(i)
-                ? "bg-green-600 text-white border-green-600"
-                : "bg-gray-50 border-gray-300"
-            }`}
-          >
-            {i}
-          </button>
-        ))}
+      {/* Título */}
+      <div>
+        <h1 className="text-3xl font-semibold text-gray-900">
+          ¿Qué te interesa?
+        </h1>
+        <p className="text-base text-gray-500 mt-1">
+          Puedes seleccionar varias opciones.
+        </p>
       </div>
 
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {/* Chips de intereses */}
+      <div className="grid grid-cols-2 gap-3">
+        {INTERESES.map((i) => {
+          const selected = form.intereses.includes(i);
 
-      <div className="flex gap-2">
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => toggle(i)}
+              className={`px-4 py-3 rounded-xl border text-sm font-medium transition-all shadow-sm
+                ${selected
+                  ? "bg-blue-600 text-white border-blue-600 shadow-md scale-[1.02]"
+                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+                }`}
+            >
+              {i}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Error */}
+      {error && (
+        <p className="text-red-600 text-sm">{error}</p>
+      )}
+
+      {/* Botones navegación */}
+      <div className="flex gap-3 pt-2">
         {back && (
-          <button onClick={back} className="w-1/3 py-3 rounded-xl border border-gray-300">
+          <button
+            type="button"
+            onClick={back}
+            className="w-1/3 py-3 rounded-xl border border-gray-300 
+                       text-gray-700 font-medium hover:bg-gray-100 transition"
+          >
             Atrás
           </button>
         )}
+
         <button
+          type="button"
           onClick={next}
           disabled={!isValid}
-          className={`flex-1 py-3 rounded-xl font-semibold ${
-            isValid ? "bg-green-600 text-white" : "bg-gray-200 text-gray-400"
-          }`}
+          className={`flex-1 py-3 rounded-xl font-semibold transition-all
+            ${isValid
+              ? "bg-blue-600 text-white shadow hover:bg-blue-700"
+              : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            }`}
         >
           Siguiente
         </button>
