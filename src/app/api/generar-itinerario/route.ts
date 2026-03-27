@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import Groq from "groq-sdk";
+import { Resend } from "resend";
 
 export async function POST(req: Request) {
+  console.log("🔥 EJECUTANDO ENDPOINT /api/generar-itinerario");
   const { travelRequestId } = await req.json();
 
   const supabase = supabaseServer();
 
+  // Obtener la solicitud completa
   const { data: solicitud } = await supabase
     .from("travel_requests")
     .select("*")
@@ -20,6 +23,9 @@ export async function POST(req: Request) {
     );
   }
 
+  // -----------------------------
+  // 1) Generar el itinerario con GROQ
+  // -----------------------------
   const client = new Groq({
     apiKey: process.env.GROQ_API_KEY!,
   });
@@ -27,51 +33,42 @@ export async function POST(req: Request) {
   const prompt = `
 Genera un itinerario de viaje personalizado y extremadamente detallado usando los siguientes datos reales del usuario:
 
-🛫 ORIGEN: ${solicitud.origen}
-🛬 DESTINO: ${solicitud.destino}
+ORIGEN: ${solicitud.origen || solicitud.tipoViaje || "No especificado"}
+DESTINO: ${solicitud.destino}
 
-📅 FECHAS DEL VIAJE:
-- Inicio: ${solicitud.fecha_inicio}
-- Fin: ${solicitud.fecha_fin}
+FECHAS:
+- Inicio: ${solicitud.fecha_inicio || solicitud.fechaInicio}
+- Fin: ${solicitud.fecha_fin || solicitud.fechaFin}
 
-💶 PRESUPUESTO TOTAL POR PERSONA:
-${solicitud.presupuesto} €
+PRESUPUESTO: ${solicitud.presupuesto}
 
-👥 VIAJEROS:
-- Número de viajeros: ${solicitud.num_viajeros}
-- Edades: ${(solicitud.edades || []).join(", ")}
+TIPO DE VIAJE: ${solicitud.tipo_viaje || solicitud.tipoViaje}
 
-💑 TIPO DE VIAJE:
-${solicitud.tipo_viaje}
+NÚMERO DE VIAJEROS: ${solicitud.num_viajeros || "No especificado"}
+EDADES: ${(solicitud.edades || []).join(", ")}
 
-🏃‍♂️ RITMO DEL VIAJE:
-${solicitud.ritmo_viaje}
+RITMO: ${solicitud.ritmo_viaje || "No especificado"}
+GASTRONOMÍA: ${solicitud.gastronomia || "No especificado"}
 
-🍽️ PREFERENCIAS GASTRONÓMICAS:
-${solicitud.gastronomia}
+INTERESES: ${
+    Array.isArray(solicitud.intereses)
+      ? solicitud.intereses.join(", ")
+      : solicitud.intereses
+  }
 
-🎯 INTERESES PRINCIPALES:
-${Array.isArray(solicitud.intereses) ? solicitud.intereses.join(", ") : solicitud.intereses}
-
----
-
-🎨 **INSTRUCCIONES PARA EL ITINERARIO**
-
-- Adapta el viaje al número de viajeros y sus edades (por ejemplo: niños, adolescentes, adultos, seniors).
-- Ajusta actividades según el tipo de viaje (pareja, familia, amigos, solo traveler, luna de miel, trabajo).
-- Ajusta el ritmo del viaje (relajado, equilibrado, intenso).
-- Incluye actividades alineadas con los intereses seleccionados.
-- Incluye recomendaciones gastronómicas según preferencias.
-- Incluye una estimación del coste del vuelo desde el origen al destino.
-- Ajusta el itinerario según la hora estimada de llegada y salida.
-- Mantén un tono humano, profesional y claro.
-- Evita actividades irreales o imposibles.
-- Incluye recomendaciones finales personalizadas.
+DETALLES ADICIONALES:
+${solicitud.detalles || "Ninguno"}
 
 ---
 
-📘 **FORMATO EXACTO DEL RESULTADO**
+INSTRUCCIONES:
+- Itinerario realista, detallado y útil.
+- Adaptado a edades, ritmo, presupuesto e intereses.
+- Incluye coste aproximado del vuelo.
+- Incluye recomendaciones gastronómicas.
+- Incluye recomendaciones finales.
 
+FORMATO:
 TÍTULO  
 RESUMEN  
 COSTE APROXIMADO DEL VUELO  
@@ -88,6 +85,9 @@ RECOMENDACIONES FINALES
 
   const texto = completion.choices[0].message.content;
 
+  // -----------------------------
+  // 2) Guardar itinerario en Supabase
+  // -----------------------------
   await supabase.from("itineraries").insert({
     travel_request_id: travelRequestId,
     titulo: `Itinerario para ${solicitud.destino}`,
@@ -95,5 +95,35 @@ RECOMENDACIONES FINALES
     estado: "generado",
   });
 
-  return NextResponse.json({ ok: true });
+  // -----------------------------
+  // 3) ENVIAR EMAIL AL USUARIO
+  // -----------------------------
+  console.log("🔑 API KEY:", process.env.RESEND_API_KEY);
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const emailHtml = `
+  <div style="font-family: Arial; padding: 20px;">
+    <h2>¡Tu itinerario personalizado está listo! ✈️</h2>
+    <p>Hola,</p>
+    <p>Aquí tienes tu itinerario generado según tus preferencias:</p>
+
+    <div style="white-space: pre-wrap; background: #f7f7f7; padding: 15px; border-radius: 8px; margin-top: 20px;">
+      ${texto}
+    </div>
+
+    <p style="margin-top: 30px;">Si quieres modificar algo o pedir otro itinerario, aquí estoy.</p>
+    <p>Un abrazo,<br/>Tu asistente de viajes</p>
+  </div>
+  `;
+  console.log("📧 ENVIANDO EMAIL A:", solicitud.email);
+
+  await resend.emails.send({
+    from: "Viajes IA <onboarding@resend.dev>",
+    to: solicitud.email,
+    subject: `Tu itinerario personalizado para ${solicitud.destino}`,
+    html: emailHtml,
+  });
+
+  return NextResponse.json({ ok: true, enviado: solicitud.email });
 }

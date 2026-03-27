@@ -8,6 +8,7 @@ import { cleanString } from "@/lib/sanitize";
 // -----------------------------
 
 const isValidDate = (str: string) => {
+  if (!str) return false;
   const d = new Date(str);
   return !isNaN(d.getTime());
 };
@@ -15,12 +16,13 @@ const isValidDate = (str: string) => {
 const validateString = (value: any, min = 2) =>
   typeof value === "string" && cleanString(value).length >= min;
 
-const validateNumber = (value: any, min = 1, max = 10) => {
-  const n = Number(value);
-  return !isNaN(n) && n >= min && n <= max;
-};
+const validateEmail = (value: any) =>
+  typeof value === "string" && /\S+@\S+\.\S+/.test(value);
 
-const MAX_ARRAY = 20;
+const validatePhone = (value: any) =>
+  typeof value === "string" && value.replace(/\D/g, "").length >= 6;
+
+const MAX_ARRAY = 30;
 
 // -----------------------------
 // POST Handler
@@ -49,7 +51,7 @@ export async function POST(req: Request) {
     }
 
     const contentLength = req.headers.get("content-length");
-    if (contentLength && Number(contentLength) > 200_000) {
+    if (contentLength && Number(contentLength) > 300_000) {
       return NextResponse.json(
         { error: "Payload demasiado grande." },
         { status: 413 }
@@ -61,90 +63,79 @@ export async function POST(req: Request) {
     // -----------------------------
     const formData = await req.formData();
 
-    const origen = cleanString(formData.get("origen"));
-    const destino = cleanString(formData.get("destino"));
-    const tipo_viaje = cleanString(formData.get("tipo_viaje"));
-    const ritmo_viaje = cleanString(formData.get("ritmo_viaje"));
-    const gastronomia = cleanString(formData.get("gastronomia"));
-    const presupuesto = cleanString(formData.get("presupuesto"));
-    const alojamiento = cleanString(formData.get("alojamiento"));
+    // Campos comunes
+    const email = cleanString(formData.get("email"));
+    const telefono = cleanString(formData.get("telefono"));
 
-    const fecha_inicio = (formData.get("fecha_inicio") as string) || "";
-    const fecha_fin = (formData.get("fecha_fin") as string) || "";
+    if (!validateEmail(email))
+      return NextResponse.json({ error: "Email inválido." }, { status: 400 });
 
-    const num_viajeros_raw = formData.get("num_viajeros") as string;
-    const num_viajeros = Number(num_viajeros_raw);
+    if (!validatePhone(telefono))
+      return NextResponse.json({ error: "Teléfono inválido." }, { status: 400 });
 
     // -----------------------------
-    // Validaciones
+    // Recoger TODOS los campos dinámicamente
     // -----------------------------
-    if (!validateString(origen))
-      return NextResponse.json({ error: "Origen inválido." }, { status: 400 });
+    const rawEntries = Object.fromEntries(formData.entries());
 
-    if (!validateString(destino))
-      return NextResponse.json({ error: "Destino inválido." }, { status: 400 });
+    // Convertir JSON automáticamente
+    const parsed: Record<string, any> = {};
 
-    if (!isValidDate(fecha_inicio) || !isValidDate(fecha_fin))
-      return NextResponse.json({ error: "Fechas inválidas." }, { status: 400 });
-
-    if (!validateNumber(num_viajeros, 1, 10))
-      return NextResponse.json(
-        { error: "Número de viajeros inválido." },
-        { status: 400 }
-      );
-
-    // -----------------------------
-    // Arrays JSON
-    // -----------------------------
-    let intereses: string[] = [];
-    let edades: number[] = [];
-
-    try {
-      const raw = formData.get("intereses_json") as string;
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length <= MAX_ARRAY) {
-          intereses = parsed.map((v) => cleanString(v, 100));
-        }
+    for (const [key, value] of Object.entries(rawEntries)) {
+      if (typeof value === "string" && value.startsWith("{") && value.endsWith("}")) {
+        try {
+          parsed[key] = JSON.parse(value);
+          continue;
+        } catch {}
       }
-    } catch {}
 
-    try {
-      const raw = formData.get("edades_json") as string;
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length <= MAX_ARRAY) {
-          edades = parsed.map((e) => Number(e));
-        }
+      if (typeof value === "string" && value.startsWith("[") && value.endsWith("]")) {
+        try {
+          parsed[key] = JSON.parse(value);
+          continue;
+        } catch {}
       }
-    } catch {}
 
-    if (edades.length !== num_viajeros) {
-      return NextResponse.json(
-        { error: "Las edades no coinciden con el número de viajeros." },
-        { status: 400 }
-      );
+      parsed[key] = cleanString(value);
     }
+
+    // -----------------------------
+    // Validaciones mínimas según wizard
+    // -----------------------------
+
+    // Si viene del wizard normal
+    if (parsed.origen && parsed.destino) {
+      if (!validateString(parsed.origen))
+        return NextResponse.json({ error: "Origen inválido." }, { status: 400 });
+
+      if (!validateString(parsed.destino))
+        return NextResponse.json({ error: "Destino inválido." }, { status: 400 });
+
+      if (!isValidDate(parsed.fecha_inicio) || !isValidDate(parsed.fecha_fin))
+        return NextResponse.json({ error: "Fechas inválidas." }, { status: 400 });
+    }
+
+    // Si viene del wizard personalizado
+    if (parsed.tipoViaje) {
+      if (!validateString(parsed.tipoViaje))
+        return NextResponse.json({ error: "Tipo de viaje inválido." }, { status: 400 });
+
+      if (!validateString(parsed.destino))
+        return NextResponse.json({ error: "Destino inválido." }, { status: 400 });
+    }
+
+    // -----------------------------
+    // Preparar payload final
+    // -----------------------------
+    const payload = {
+      ...parsed,
+      created_at: new Date().toISOString(),
+    };
 
     // -----------------------------
     // Insertar en Supabase
     // -----------------------------
     const supabase = supabaseServer();
-
-    const payload = {
-      origen,
-      destino,
-      fecha_inicio,
-      fecha_fin,
-      tipo_viaje,
-      ritmo_viaje,
-      gastronomia,
-      presupuesto,
-      intereses,
-      num_viajeros,
-      edades,
-      alojamiento,
-    };
 
     const { data, error } = await supabase
       .from("travel_requests")

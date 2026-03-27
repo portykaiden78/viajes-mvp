@@ -5,7 +5,7 @@ import { StepPropsResumen } from "../types";
 export default function Step12Resumen({
   form,
   back,
-  submit,
+  onSubmit,   // ✅ antes era submit
   loading,
   mensaje,
   isValid,
@@ -106,7 +106,7 @@ export default function Step12Resumen({
 
         <button
           type="button"
-          onClick={submit}
+          onClick={onSubmit}   // ✅ antes era submit
           disabled={!isValid || loading}
           className={`flex-1 py-3 rounded-xl font-semibold transition-all
             ${isValid && !loading
