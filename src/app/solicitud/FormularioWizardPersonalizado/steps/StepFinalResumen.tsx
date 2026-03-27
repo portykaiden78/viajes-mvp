@@ -1,4 +1,4 @@
-import { StepPropsResumen } from "../types";
+import { StepPropsResumen } from "@/app/solicitud/FormularioWizardPersonalizado/types";
 
 export default function StepFinalResumen({
   form,

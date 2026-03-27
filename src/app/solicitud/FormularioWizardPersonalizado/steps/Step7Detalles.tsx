@@ -1,4 +1,4 @@
-import { StepPropsWithUpdate } from "../types";
+import { StepPropsWithUpdate } from "@/app/solicitud/FormularioWizardPersonalizado/types";
 
 export default function Step7Detalles({
   form,

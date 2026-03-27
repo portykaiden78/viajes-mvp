@@ -1,10 +1,11 @@
 import { FormDataType } from "../types";
 
 export const validateStep7 = (form: FormDataType) => {
-  return !!form.ritmo_viaje;
+  // Este campo es opcional → siempre válido
+  return true;
 };
 
 export const getStep7Error = (form: FormDataType) => {
-  if (!form.ritmo_viaje) return "Selecciona un ritmo de viaje.";
+  // No hay errores porque no es obligatorio
   return null;
 };

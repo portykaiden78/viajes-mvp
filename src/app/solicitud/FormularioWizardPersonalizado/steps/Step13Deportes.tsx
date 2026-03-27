@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { StepPropsWithUpdate } from "../types";
+import { StepPropsWithUpdate } from "@/app/solicitud/FormularioWizardPersonalizado/types";
 
 export default function Step13Deportes({
   form,

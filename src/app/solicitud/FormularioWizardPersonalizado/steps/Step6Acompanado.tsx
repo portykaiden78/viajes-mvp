@@ -1,4 +1,4 @@
-import { StepPropsWithUpdate } from "../types";
+import { StepPropsWithUpdate } from "@/app/solicitud/FormularioWizardPersonalizado/types";
 
 export default function Step6Acompanado({
   form,
@@ -25,7 +25,6 @@ export default function Step6Acompanado({
         <option value="otro">Otro</option>
       </select>
 
-      {/* Subpreguntas */}
       {form.acompanado === "familia" && (
         <input
           type="text"
