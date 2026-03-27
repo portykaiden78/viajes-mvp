@@ -1,27 +1,42 @@
 import { FormDataType } from "../types";
 
 export const validateStep6 = (form: FormDataType) => {
-  if (!form.fecha_inicio || !form.fecha_fin) return false;
+  const { acompanado, edadesFamilia, numAmigos, acompanadoOtro } = form;
 
-  const start = new Date(form.fecha_inicio);
-  const end = new Date(form.fecha_fin);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  if (!acompanado) return false;
 
-  return start >= today && end > start;
+  if (acompanado === "familia") {
+    return !!edadesFamilia && edadesFamilia.trim().length > 0;
+  }
+
+  if (acompanado === "amigos") {
+    return !!numAmigos && numAmigos.trim().length > 0;
+  }
+
+  if (acompanado === "otro") {
+    return !!acompanadoOtro && acompanadoOtro.trim().length > 0;
+  }
+
+  // "solo" o "pareja" → válido sin subcampos
+  return true;
 };
 
 export const getStep6Error = (form: FormDataType) => {
-  if (!form.fecha_inicio || !form.fecha_fin)
-    return "Debes seleccionar ambas fechas.";
+  const { acompanado, edadesFamilia, numAmigos, acompanadoOtro } = form;
 
-  const start = new Date(form.fecha_inicio);
-  const end = new Date(form.fecha_fin);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  if (!acompanado) return "Selecciona una opción.";
 
-  if (start < today) return "La fecha de inicio no puede ser anterior a hoy.";
-  if (end <= start) return "La fecha de fin debe ser posterior al inicio.";
+  if (acompanado === "familia" && (!edadesFamilia || !edadesFamilia.trim())) {
+    return "Indica las edades de los miembros de la familia.";
+  }
+
+  if (acompanado === "amigos" && (!numAmigos || !numAmigos.trim())) {
+    return "Indica cuántas personas viajan contigo.";
+  }
+
+  if (acompanado === "otro" && (!acompanadoOtro || !acompanadoOtro.trim())) {
+    return "Especifica con quién viajas.";
+  }
 
   return null;
 };

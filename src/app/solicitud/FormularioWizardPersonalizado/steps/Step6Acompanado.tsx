@@ -25,7 +25,6 @@ export default function Step6Acompanado({
         <option value="otro">Otro</option>
       </select>
 
-      {/* Subpreguntas */}
       {form.acompanado === "familia" && (
         <input
           type="text"

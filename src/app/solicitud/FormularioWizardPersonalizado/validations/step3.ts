@@ -1,10 +1,26 @@
 import { FormDataType } from "../types";
 
 export const validateStep3 = (form: FormDataType) => {
-  return !!form.tipo_viaje;
+  const { fechaInicio, fechaFin, fechasFlexibles, cualquierFecha } = form;
+
+  // Si el usuario marca alguna opción flexible → no exigimos fechas
+  if (fechasFlexibles || cualquierFecha) {
+    return true;
+  }
+
+  // Si no hay flexibilidad → ambas fechas obligatorias
+  return !!fechaInicio && !!fechaFin;
 };
 
 export const getStep3Error = (form: FormDataType) => {
-  if (!form.tipo_viaje) return "Selecciona un tipo de viaje.";
+  const { fechaInicio, fechaFin, fechasFlexibles, cualquierFecha } = form;
+
+  if (fechasFlexibles || cualquierFecha) {
+    return null; // No pedimos fechas
+  }
+
+  if (!fechaInicio) return "La fecha de inicio es obligatoria.";
+  if (!fechaFin) return "La fecha de fin es obligatoria.";
+
   return null;
 };
