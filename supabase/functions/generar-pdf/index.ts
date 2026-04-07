@@ -1,5 +1,4 @@
-// @ts-ignore
-import puppeteer from "puppeteer";
+import puppeteer from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -7,16 +6,13 @@ Deno.serve(async (req) => {
 
     const browser = await puppeteer.launch({
       headless: true,
-      args: ["--no-sandbox"],
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
 
     const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "networkidle0" });
 
-    await page.setContent(html, {
-      waitUntil: "networkidle0",
-    });
-
-    const pdfBuffer = await page.pdf({
+    const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
       margin: { top: "20mm", bottom: "20mm" },
@@ -24,7 +20,7 @@ Deno.serve(async (req) => {
 
     await browser.close();
 
-    return new Response(pdfBuffer, {
+    return new Response(pdf, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename=itinerario-${id}.pdf`,
