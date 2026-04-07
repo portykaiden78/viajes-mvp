@@ -1,7 +1,6 @@
-//Crear manual
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/auth-helpers-nextjs";
 
 export default function CrearItinerario({ params }: any) {
@@ -17,13 +16,45 @@ export default function CrearItinerario({ params }: any) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  // -----------------------------
+  // Cargar solicitud para generar título por defecto
+  // -----------------------------
+  useEffect(() => {
+    async function load() {
+      const { data: solicitud } = await supabase
+        .from("travel_requests")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (!solicitud) return;
+
+      // Normalizar destinos
+      const destinos: string[] = Array.isArray(solicitud.destinos)
+        ? solicitud.destinos
+        : solicitud.destino
+        ? [solicitud.destino]
+        : [];
+
+      const destinosTexto = destinos.join(", ") || "Destino no especificado";
+
+      // Si el usuario no ha escrito título, sugerimos uno
+      setTitulo(`Itinerario para ${destinosTexto}`);
+    }
+
+    load();
+  }, [id, supabase]);
+
+  // -----------------------------
+  // Guardar itinerario manual
+  // -----------------------------
   async function handleSubmit(e: any) {
     e.preventDefault();
     setLoading(true);
 
     const { error } = await supabase.from("itineraries").insert({
       travel_request_id: id,
-      titulo,
+      titulo: titulo.trim() || "Itinerario sin título",
       resumen,
       estado: "borrador",
     });
@@ -33,6 +64,9 @@ export default function CrearItinerario({ params }: any) {
     if (!error) setSuccess(true);
   }
 
+  // -----------------------------
+  // Pantalla de éxito
+  // -----------------------------
   if (success) {
     return (
       <main className="max-w-2xl mx-auto py-20 px-4 text-black">
@@ -47,6 +81,9 @@ export default function CrearItinerario({ params }: any) {
     );
   }
 
+  // -----------------------------
+  // Formulario
+  // -----------------------------
   return (
     <main className="max-w-2xl mx-auto py-20 px-4 text-black">
       <h1 className="text-3xl font-bold mb-6">Crear itinerario</h1>

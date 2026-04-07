@@ -33,7 +33,7 @@ export default function Step12Resumen({
 
         <div className="flex justify-between">
           <span className="font-medium text-gray-600">Destino</span>
-          <span>{form.destino}</span>
+          <span>{form.destinos}</span>
         </div>
 
         <div className="flex justify-between">

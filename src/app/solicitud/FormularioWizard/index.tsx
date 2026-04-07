@@ -42,10 +42,12 @@ export default function FormularioWizard() {
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
 
-  const [form, setForm] = useState<FormDataType>({
+  // Estado inicial correcto
+  const initialForm: FormDataType = {
     origen: "",
-    destino: "",
-    tipo_viaje: "",
+    destinos: [],          // ← MULTISELECT
+    tipo_viaje: [],
+    tipo_viaje_otro: "",
     num_viajeros: 1,
     edades: [""],
     fecha_inicio: "",
@@ -57,21 +59,50 @@ export default function FormularioWizard() {
     alojamiento: "",
     email: "",
     telefono: "",
-  });
+  };
 
-  // Cargar desde localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setForm(JSON.parse(saved));
-    } catch { }
-  }, []);
+  const [form, setForm] = useState<FormDataType>(initialForm);
+
+  // MIGRACIÓN AUTOMÁTICA DEL LOCALSTORAGE
+useEffect(() => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return;
+
+    const parsed = JSON.parse(saved);
+
+    const migrated: FormDataType = {
+      origen: parsed.origen ?? "",
+      destinos: Array.isArray(parsed.destinos)
+        ? parsed.destinos
+        : parsed.destino
+        ? [parsed.destino]   // ← MIGRACIÓN desde destino:string
+        : [],
+
+      tipo_viaje: Array.isArray(parsed.tipo_viaje) ? parsed.tipo_viaje : [],
+      tipo_viaje_otro: parsed.tipo_viaje_otro ?? "",
+      num_viajeros: parsed.num_viajeros ?? 1,
+      edades: parsed.edades ?? [""],
+      fecha_inicio: parsed.fecha_inicio ?? "",
+      fecha_fin: parsed.fecha_fin ?? "",
+      ritmo_viaje: parsed.ritmo_viaje ?? "",
+      gastronomia: parsed.gastronomia ?? "",
+      intereses: parsed.intereses ?? [],
+      presupuesto: parsed.presupuesto ?? "",
+      alojamiento: parsed.alojamiento ?? "",
+      email: parsed.email ?? "",
+      telefono: parsed.telefono ?? "",
+    };
+
+    setForm(migrated);
+  } catch {}
+}, []);
 
   // Guardar en localStorage
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
-    } catch { }
+    } catch {}
   }, [form]);
 
   // Ocultar mensaje después de 3 segundos
@@ -91,71 +122,62 @@ export default function FormularioWizard() {
   const handleSubmit = async () => {
     setLoading(true);
     setMensaje(null);
-  
+
     try {
       const fd = new FormData();
-      Object.entries(form).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          fd.set(key, JSON.stringify(value)); // 👈 sin _json
-        } else {
-          fd.set(key, String(value));
-        }
-      });
-  
-      // 1) Crear solicitud
+
+// Asegurar que destinos siempre es array
+const safeForm = {
+  ...form,
+  destinos: Array.isArray(form.destinos) ? form.destinos : [],
+};
+
+console.log("📤 ENVIANDO FORM DATA:", safeForm);
+
+Object.entries(safeForm).forEach(([key, value]) => {
+  if (Array.isArray(value)) {
+    fd.set(key, JSON.stringify(value));
+  } else if (value === undefined || value === null) {
+    fd.set(key, "");
+  } else {
+    fd.set(key, String(value));
+  }
+});
+
+
       const res = await fetch("/api/crear-solicitud", {
         method: "POST",
         body: fd,
       });
-  
+
       const data = await res.json();
-  
+
       if (!res.ok || !data.id) {
         setMensaje("Error: " + data.error);
         return;
       }
-  
-      // 2) Generar itinerario + enviar email
+
       const res2 = await fetch("/api/generar-itinerario", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ travelRequestId: data.id }),
       });
-  
+
       const data2 = await res2.json();
-  
+
       if (!res2.ok) {
         setMensaje("Error generando itinerario: " + data2.error);
         return;
       }
-  
-      // 3) Todo OK
+
       setMensaje("¡Tu itinerario ha sido enviado a tu correo!");
-  
-      // Reset del formulario
-      setForm({
-        origen: "",
-        destino: "",
-        tipo_viaje: "",
-        num_viajeros: 1,
-        edades: [""],
-        fecha_inicio: "",
-        fecha_fin: "",
-        ritmo_viaje: "",
-        gastronomia: "",
-        intereses: [],
-        presupuesto: "",
-        alojamiento: "",
-        email: "",
-        telefono: "",
-      });
-  
+
+      setForm(initialForm);
       setStep(1);
     } finally {
       setLoading(false);
     }
   };
-  
 
   // Selección del componente del step
   const StepComponent = useMemo(() => {
@@ -192,7 +214,6 @@ export default function FormularioWizard() {
       10: validateStep10,
       11: validateStep9,
       12: validateStep12,
-      // Step 13 (contacto) se valida dentro del propio step
     };
     return validators[step]?.(form) ?? true;
   })();
@@ -242,7 +263,7 @@ export default function FormularioWizard() {
             <StepComponent
               form={form}
               back={back}
-              onSubmit={() => setStep(13)}   // ✅ AHORA SÍ
+              onSubmit={() => setStep(13)}
               loading={loading}
               isValid={isStepValid}
             />

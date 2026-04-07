@@ -1,10 +1,13 @@
-//VER itinerario
+// VER itinerario (SERVER COMPONENT)
 import { supabaseServer } from "@/lib/supabaseServer";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
+import DescargarPDFButton from "@/components/DescargarPDFButton";
 
 export default async function VerItinerario({ params }: any) {
-  const { id } = params;
+  const { id } = params; // UUID correcto
   const supabase = supabaseServer();
 
+  // Buscar itinerario por UUID
   const { data: itinerarios } = await supabase
     .from("itineraries")
     .select("*")
@@ -13,6 +16,23 @@ export default async function VerItinerario({ params }: any) {
     .limit(1);
 
   const itinerario = itinerarios?.[0];
+
+  // Buscar solicitud
+  const { data: solicitud } = await supabase
+    .from("travel_requests")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  let destinos: string[] = [];
+
+  if (Array.isArray(solicitud?.destinos)) destinos = solicitud.destinos;
+  else if (typeof solicitud?.destinos === "string") {
+    try { destinos = JSON.parse(solicitud.destinos); }
+    catch { destinos = [solicitud.destinos]; }
+  } else if (solicitud?.destino) destinos = [solicitud.destino];
+
+  const destinosTexto = destinos.length > 0 ? destinos.join(", ") : "No especificado";
 
   return (
     <main className="max-w-3xl mx-auto py-20 px-4 text-black">
@@ -23,9 +43,16 @@ export default async function VerItinerario({ params }: any) {
       )}
 
       {itinerario && (
-        <div className="bg-white p-6 rounded border whitespace-pre-line leading-relaxed">
-          <h2 className="text-xl font-bold mb-4">{itinerario.titulo}</h2>
-          {itinerario.resumen}
+        <div className="bg-white p-6 rounded border leading-relaxed prose prose-neutral max-w-none">
+          <h2 className="text-xl font-bold mb-4">
+            {itinerario.titulo || `Itinerario para ${destinosTexto}`}
+          </h2>
+
+          <MarkdownRenderer content={itinerario.resumen} />
+
+          {/* BOTÓN PARA DESCARGAR PDF */}
+          <DescargarPDFButton id={itinerario.id} />
+
         </div>
       )}
 

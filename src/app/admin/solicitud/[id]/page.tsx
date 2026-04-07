@@ -30,6 +30,28 @@ export default async function SolicitudDetalle({ params }: any) {
     );
   }
 
+  // -----------------------------
+  // Normalización de datos
+  // -----------------------------
+
+  // Destinos múltiples
+  const destinos: string[] = Array.isArray(solicitud.destinos)
+    ? solicitud.destinos
+    : solicitud.destino
+    ? [solicitud.destino]
+    : [];
+
+  const destinosTexto = destinos.join(", ") || "No especificado";
+
+  // Tipos de viaje múltiples
+  const tipoViaje: string[] = Array.isArray(solicitud.tipo_viaje)
+    ? solicitud.tipo_viaje
+    : solicitud.tipo_viaje
+    ? [solicitud.tipo_viaje]
+    : [];
+
+  const tipoViajeTexto = tipoViaje.join(", ") || "No especificado";
+
   return (
     <main className="max-w-3xl mx-auto py-20 px-4 text-black">
       <h1 className="text-3xl font-bold mb-6">Detalle de solicitud</h1>
@@ -37,13 +59,15 @@ export default async function SolicitudDetalle({ params }: any) {
       <div className="bg-white p-6 rounded border space-y-2">
 
         <p><strong>Origen:</strong> {solicitud.origen}</p>
-        <p><strong>Destino:</strong> {solicitud.destino}</p>
+
+        <p><strong>Destinos:</strong> {destinosTexto}</p>
 
         <p>
           <strong>Fechas:</strong> {solicitud.fecha_inicio} → {solicitud.fecha_fin}
         </p>
 
-        <p><strong>Tipo de viaje:</strong> {solicitud.tipo_viaje}</p>
+        <p><strong>Tipo de viaje:</strong> {tipoViajeTexto}</p>
+
         <p><strong>Ritmo del viaje:</strong> {solicitud.ritmo_viaje}</p>
         <p><strong>Gastronomía:</strong> {solicitud.gastronomia}</p>
 
