@@ -51,10 +51,8 @@ export default async function VerItinerario({ params }: any) {
           <MarkdownRenderer content={itinerario.resumen} />
 
           {/* BOTÓN PARA DESCARGAR PDF */}
-          <DescargarPDFButton
-            titulo={itinerario.titulo}
-            resumen={itinerario.resumen}
-          />
+          <DescargarPDFButton id={itinerario.id} />
+
         </div>
       )}
 
