@@ -22,8 +22,6 @@ const validateEmail = (value: any) =>
 const validatePhone = (value: any) =>
   typeof value === "string" && value.replace(/\D/g, "").length >= 6;
 
-const MAX_ARRAY = 30;
-
 // -----------------------------
 // POST Handler
 // -----------------------------
@@ -63,7 +61,6 @@ export async function POST(req: Request) {
     // -----------------------------
     const formData = await req.formData();
 
-    // Campos comunes
     const email = cleanString(formData.get("email"));
     const telefono = cleanString(formData.get("telefono"));
 
@@ -74,58 +71,113 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Teléfono inválido." }, { status: 400 });
 
     // -----------------------------
-    // Recoger TODOS los campos dinámicamente
+    // Parseo dinámico de todos los campos
     // -----------------------------
     const rawEntries = Object.fromEntries(formData.entries());
-
-    // Convertir JSON automáticamente
     const parsed: Record<string, any> = {};
 
     for (const [key, value] of Object.entries(rawEntries)) {
-      if (typeof value === "string" && value.startsWith("{") && value.endsWith("}")) {
+      if (typeof value === "string") {
+        // JSON array
         try {
-          parsed[key] = JSON.parse(value);
-          continue;
+          const parsedJson = JSON.parse(value);
+          if (Array.isArray(parsedJson) || typeof parsedJson === "object") {
+            parsed[key] = parsedJson;
+            continue;
+          }
         } catch {}
+        
+
+        // JSON object
+        if (value.startsWith("{") && value.endsWith("}")) {
+          try {
+            parsed[key] = JSON.parse(value);
+            continue;
+          } catch {}
+        }
+
+        parsed[key] = cleanString(value);
       }
+    }
 
-      if (typeof value === "string" && value.startsWith("[") && value.endsWith("]")) {
-        try {
-          parsed[key] = JSON.parse(value);
-          continue;
-        } catch {}
+    // -----------------------------
+    // MIGRACIÓN: destino → destinos[]
+    // -----------------------------
+    if (!parsed.destinos) {
+      if (parsed.destino) {
+        parsed.destinos = [parsed.destino];
+      } else {
+        parsed.destinos = [];
       }
+    }
+    delete parsed.destino;
 
-      parsed[key] = cleanString(value);
+    // -----------------------------
+    // MIGRACIÓN: tipo_viaje antiguo → array
+    // -----------------------------
+    if (!Array.isArray(parsed.tipo_viaje)) {
+      if (parsed.tipo_viaje && typeof parsed.tipo_viaje === "string") {
+        parsed.tipo_viaje = [parsed.tipo_viaje];
+      } else {
+        parsed.tipo_viaje = [];
+      }
+    }
+
+    // Normalizar "otro"
+    if (parsed.tipo_viaje_otro) {
+      const otro = parsed.tipo_viaje_otro.trim();
+      if (otro.length > 0 && !parsed.tipo_viaje.includes(otro)) {
+        parsed.tipo_viaje.push(otro);
+      }
     }
 
     // -----------------------------
-    // Validaciones mínimas según wizard
+    // Validaciones mínimas
     // -----------------------------
 
-    // Si viene del wizard normal
-    if (parsed.origen && parsed.destino) {
-      if (!validateString(parsed.origen))
-        return NextResponse.json({ error: "Origen inválido." }, { status: 400 });
+    // Origen
+    if (!validateString(parsed.origen))
+      return NextResponse.json({ error: "Origen inválido." }, { status: 400 });
 
-      if (!validateString(parsed.destino))
-        return NextResponse.json({ error: "Destino inválido." }, { status: 400 });
-
-      if (!isValidDate(parsed.fecha_inicio) || !isValidDate(parsed.fecha_fin))
-        return NextResponse.json({ error: "Fechas inválidas." }, { status: 400 });
+    // Destinos múltiples
+    if (!Array.isArray(parsed.destinos) || parsed.destinos.length === 0) {
+      return NextResponse.json(
+        { error: "Debes seleccionar al menos un destino." },
+        { status: 400 }
+      );
     }
 
-    // Si viene del wizard personalizado
-    if (parsed.tipoViaje) {
-      if (!validateString(parsed.tipoViaje))
-        return NextResponse.json({ error: "Tipo de viaje inválido." }, { status: 400 });
+    // Ningún destino igual al origen
+    const origenLower = parsed.origen.trim().toLowerCase();
+    const destinoInvalido = parsed.destinos.some(
+      (d: string) => d.trim().toLowerCase() === origenLower
+    );
 
-      if (!validateString(parsed.destino))
-        return NextResponse.json({ error: "Destino inválido." }, { status: 400 });
+    if (destinoInvalido) {
+      return NextResponse.json(
+        { error: "El destino no puede ser igual al origen." },
+        { status: 400 }
+      );
+    }
+
+    // Tipos de viaje múltiples
+    if (!Array.isArray(parsed.tipo_viaje) || parsed.tipo_viaje.length === 0) {
+      return NextResponse.json(
+        { error: "Selecciona al menos un tipo de viaje." },
+        { status: 400 }
+      );
+    }
+
+    // Fechas
+    if (!isValidDate(parsed.fecha_inicio) || !isValidDate(parsed.fecha_fin)) {
+      return NextResponse.json(
+        { error: "Fechas inválidas." },
+        { status: 400 }
+      );
     }
 
     // -----------------------------
-    // Preparar payload final
+    // Payload final
     // -----------------------------
     const payload = {
       ...parsed,

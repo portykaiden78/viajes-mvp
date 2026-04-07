@@ -8,6 +8,7 @@ export default async function AdminPage() {
     .from("travel_requests")
     .select("*")
     .order("created_at", { ascending: false });
+    
 
   if (error) {
     console.error("Error cargando solicitudes:", error);
@@ -24,34 +25,45 @@ export default async function AdminPage() {
       <h1 className="text-3xl font-bold mb-6">Solicitudes</h1>
 
       <div className="space-y-4">
-        {solicitudes?.map((s) => (
-          <a
-            key={s.id}
-            href={`/admin/solicitud/${s.id}`}
-            className="block bg-white p-4 rounded border hover:bg-gray-50"
-          >
-            <p><strong>Origen:</strong> {s.origen}</p>
-            <p><strong>Destino:</strong> {s.destino}</p>
+        {solicitudes?.map((s) => {
+          // Normalizar destinos
+          const destinos: string[] = Array.isArray(s.destinos)
+            ? s.destinos
+            : s.destino
+            ? [s.destino]
+            : [];
 
-            <p>
-              <strong>Fechas:</strong> {s.fecha_inicio} → {s.fecha_fin}
-            </p>
+          const destinosTexto = destinos.join(", ") || "No especificado";
 
-            <p><strong>Viajeros:</strong> {s.num_viajeros}</p>
+          return (
+            <a
+              key={s.id}
+              href={`/admin/solicitud/${s.id}`}
+              className="block bg-white p-4 rounded border hover:bg-gray-50"
+            >
+              <p><strong>Origen:</strong> {s.origen}</p>
+              <p><strong>Destinos:</strong> {destinosTexto}</p>
 
-            {Array.isArray(s.edades) && (
-              <p><strong>Edades:</strong> {s.edades.join(", ")}</p>
-            )}
+              <p>
+                <strong>Fechas:</strong> {s.fecha_inicio} → {s.fecha_fin}
+              </p>
 
-            {s.estado && (
-              <p><strong>Estado:</strong> {s.estado}</p>
-            )}
+              <p><strong>Viajeros:</strong> {s.num_viajeros}</p>
 
-            {s.alojamiento && (
-              <p><strong>Alojamiento:</strong> {s.alojamiento}</p>
-            )}
-          </a>
-        ))}
+              {Array.isArray(s.edades) && (
+                <p><strong>Edades:</strong> {s.edades.join(", ")}</p>
+              )}
+
+              {s.estado && (
+                <p><strong>Estado:</strong> {s.estado}</p>
+              )}
+
+              {s.alojamiento && (
+                <p><strong>Alojamiento:</strong> {s.alojamiento}</p>
+              )}
+            </a>
+          );
+        })}
       </div>
     </main>
   );

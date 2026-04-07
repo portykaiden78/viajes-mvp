@@ -2,6 +2,7 @@
 
 import { StepPropsWithUpdate } from "@/app/solicitud/FormularioWizard/types";
 import { getStep2Error } from "@/app/solicitud/FormularioWizard/validations";
+import { useState } from "react";
 
 const DESTINOS = ["París", "Roma", "Londres", "Nueva York", "Tokio", "Lisboa"];
 
@@ -12,11 +13,29 @@ export default function Step2Destino({
   back,
   isValid,
 }: StepPropsWithUpdate) {
-  
-  const error = getStep2Error(form);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    update("destino", e.target.value);
+  const error = getStep2Error(form);
+  const [inputValue, setInputValue] = useState("");
+
+  const toggleDestino = (dest: string) => {
+    const arr = form.destinos || [];
+
+    if (arr.includes(dest)) {
+      update("destinos", arr.filter((d) => d !== dest));
+    } else {
+      update("destinos", [...arr, dest]);
+    }
+  };
+
+  const addDestinoManual = () => {
+    const value = inputValue.trim();
+    if (!value) return;
+
+    if (!form.destinos.includes(value)) {
+      update("destinos", [...form.destinos, value]);
+    }
+
+    setInputValue("");
   };
 
   return (
@@ -28,35 +47,80 @@ export default function Step2Destino({
           ¿A dónde quieres ir?
         </h1>
         <p className="text-base text-gray-500 mt-1">
-          Elige tu destino principal. Luego podremos afinar detalles.
+          Puedes seleccionar uno o varios destinos.
         </p>
       </div>
 
-      {/* Input */}
+      {/* Botones de destinos */}
+      <div className="grid grid-cols-2 gap-3">
+        {DESTINOS.map((d) => {
+          const selected = form.destinos.includes(d);
+
+          return (
+            <button
+              key={d}
+              type="button"
+              onClick={() => toggleDestino(d)}
+              className={`px-4 py-3 rounded-xl border text-sm font-medium transition-all shadow-sm
+                ${selected
+                  ? "bg-blue-600 text-white border-blue-600 shadow-md scale-[1.02]"
+                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+                }`}
+            >
+              {d}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Input manual */}
       <div className="space-y-2">
-        <input
-          className="w-full px-4 py-3 rounded-xl border border-gray-300 
-                     bg-white text-gray-900 shadow-sm
-                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                     transition-all"
-          value={form.destino}
-          onChange={handleChange}
-          placeholder="Ej: Roma"
-          list="destinos"
-        />
+        <div className="flex gap-2">
+          <input
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-300 
+                       bg-white text-gray-900 shadow-sm
+                       focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                       transition-all"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="Añadir destino manualmente"
+          />
 
-        <datalist id="destinos">
-          {DESTINOS.map((d) => (
-            <option key={d} value={d} />
-          ))}
-        </datalist>
+          <button
+            type="button"
+            onClick={addDestinoManual}
+            className="px-4 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
+          >
+            Añadir
+          </button>
+        </div>
 
-        {error && form.destino.length > 0 && (
+        {error && (
           <p className="text-red-600 text-sm">{error}</p>
         )}
       </div>
 
-      {/* Botones */}
+      {/* Lista de destinos seleccionados */}
+      {form.destinos.length > 0 && (
+        <div className="flex flex-wrap gap-2 pt-2">
+          {form.destinos.map((d) => (
+            <span
+              key={d}
+              className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center gap-2"
+            >
+              {d}
+              <button
+                onClick={() => toggleDestino(d)}
+                className="text-blue-700 hover:text-blue-900"
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Botones navegación */}
       <div className="flex gap-3 pt-2">
         {back && (
           <button

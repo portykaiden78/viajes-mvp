@@ -1,7 +1,8 @@
 export type FormDataType = {
   origen: string;
-  destino: string;
-  tipo_viaje: string;
+  destinos: string[];        // ← MULTISELECT (antes era destino: string)
+  tipo_viaje: string[];      // ← MULTISELECT
+  tipo_viaje_otro: string;   // ← OTRO
   num_viajeros: number;
   edades: string[];
   fecha_inicio: string;
@@ -23,18 +24,16 @@ export type StepPropsBase = {
 
 export type StepPropsWithUpdate = StepPropsBase & {
   update: (field: keyof FormDataType, value: any) => void;
-  next: () => void;   // steps normales
+  next: () => void;
 };
 
 export type StepPropsResumen = StepPropsBase & {
-  onSubmit: () => void;   // resumen
+  onSubmit: () => void;
   loading: boolean;
   mensaje: string | null;
 };
 
 export type StepPropsContacto = StepPropsBase & {
   update: (field: keyof FormDataType, value: any) => void;
-  onSubmit: () => void;   // contacto
+  onSubmit: () => void;
 };
-
-

@@ -5,6 +5,14 @@ export const validateStep3 = (form: FormDataType) => {
 };
 
 export const getStep3Error = (form: FormDataType) => {
-  if (!form.tipo_viaje) return "Selecciona un tipo de viaje.";
+  const tieneOpciones = form.tipo_viaje?.length > 0;
+  const tieneOtro = form.tipo_viaje_otro?.trim().length > 0;
+
+  if (!tieneOpciones && !tieneOtro) {
+    return "Selecciona al menos un tipo de viaje o escribe uno en 'Otro'.";
+  }
+
   return null;
 };
+
+

@@ -5,125 +5,150 @@ import { Resend } from "resend";
 
 export async function POST(req: Request) {
   console.log("🔥 EJECUTANDO ENDPOINT /api/generar-itinerario");
-  const { travelRequestId } = await req.json();
 
-  const supabase = supabaseServer();
+  try {
+    const { travelRequestId } = await req.json();
+    const supabase = supabaseServer();
 
-  // Obtener la solicitud completa
-  const { data: solicitud } = await supabase
-    .from("travel_requests")
-    .select("*")
-    .eq("id", travelRequestId)
-    .single();
+    const { data: solicitud } = await supabase
+      .from("travel_requests")
+      .select("*")
+      .eq("id", travelRequestId)
+      .single();
 
-  if (!solicitud) {
-    return NextResponse.json(
-      { error: "Solicitud no encontrada" },
-      { status: 404 }
-    );
-  }
+    if (!solicitud) {
+      return NextResponse.json({ error: "Solicitud no encontrada" }, { status: 404 });
+    }
 
-  // -----------------------------
-  // 1) Generar el itinerario con GROQ
-  // -----------------------------
-  const client = new Groq({
-    apiKey: process.env.GROQ_API_KEY!,
-  });
+    // Normalizar destinos
+    let destinos: string[] = [];
 
-  const prompt = `
-Genera un itinerario de viaje personalizado y extremadamente detallado usando los siguientes datos reales del usuario:
+    if (Array.isArray(solicitud.destinos)) destinos = solicitud.destinos;
+    else if (typeof solicitud.destinos === "string") {
+      try { destinos = JSON.parse(solicitud.destinos); }
+      catch { destinos = [solicitud.destinos]; }
+    } else if (solicitud.destino) destinos = [solicitud.destino];
 
-ORIGEN: ${solicitud.origen || solicitud.tipoViaje || "No especificado"}
-DESTINO: ${solicitud.destino}
+    const destinosTexto = destinos.join(", ");
 
-FECHAS:
-- Inicio: ${solicitud.fecha_inicio || solicitud.fechaInicio}
-- Fin: ${solicitud.fecha_fin || solicitud.fechaFin}
+    // Normalizar tipo de viaje
+    let tipoViaje: string[] = [];
+    if (Array.isArray(solicitud.tipo_viaje)) tipoViaje = solicitud.tipo_viaje;
+    else if (typeof solicitud.tipo_viaje === "string") {
+      try { tipoViaje = JSON.parse(solicitud.tipo_viaje); }
+      catch { tipoViaje = [solicitud.tipo_viaje]; }
+    }
 
-PRESUPUESTO: ${solicitud.presupuesto}
+    const tipoViajeTexto = tipoViaje.join(", ");
 
-TIPO DE VIAJE: ${solicitud.tipo_viaje || solicitud.tipoViaje}
+    const prompt = `
+Genera un itinerario de viaje detallado para los siguientes destinos, en este orden:
+${destinos.map((d, i) => `${i + 1}. ${d}`).join("\n")}
 
-NÚMERO DE VIAJEROS: ${solicitud.num_viajeros || "No especificado"}
-EDADES: ${(solicitud.edades || []).join(", ")}
+DATOS DEL VIAJE:
+Origen: ${solicitud.origen}
+Fechas: ${solicitud.fecha_inicio} → ${solicitud.fecha_fin}
+Presupuesto total: ${solicitud.presupuesto}
+Tipo de viaje: ${tipoViajeTexto}
+Viajeros: ${solicitud.num_viajeros}
+Edades: ${(solicitud.edades || []).join(", ")}
+Ritmo: ${solicitud.ritmo_viaje}
+Gastronomía: ${solicitud.gastronomia}
+Intereses: ${
+  Array.isArray(solicitud.intereses)
+    ? solicitud.intereses.join(", ")
+    : solicitud.intereses
+}
 
-RITMO: ${solicitud.ritmo_viaje || "No especificado"}
-GASTRONOMÍA: ${solicitud.gastronomia || "No especificado"}
+REGLA OBLIGATORIA: REGRESO AL ORIGEN
+El itinerario SIEMPRE debe terminar con un bloque llamado:
 
-INTERESES: ${
-    Array.isArray(solicitud.intereses)
-      ? solicitud.intereses.join(", ")
-      : solicitud.intereses
-  }
+## REGRESO AL ORIGEN
 
-DETALLES ADICIONALES:
-${solicitud.detalles || "Ninguno"}
+Incluye:
+- Medio de transporte recomendado para volver a ${solicitud.origen}
+- Coste aproximado
+- Duración del trayecto
+- Horario recomendado
+- Consejos finales
 
----
+Este bloque debe ir justo antes del resumen de presupuesto.
 
-INSTRUCCIONES:
-- Itinerario realista, detallado y útil.
-- Adaptado a edades, ritmo, presupuesto e intereses.
-- Incluye coste aproximado del vuelo.
-- Incluye recomendaciones gastronómicas.
-- Incluye recomendaciones finales.
+INSTRUCCIONES DEL ITINERARIO:
+- Usa todos los destinos en el orden indicado.
+- Divide el itinerario en bloques por destino.
+- Incluye actividades diarias, transporte entre destinos y costes aproximados.
+- Adapta todo al presupuesto.
 
-FORMATO:
-TÍTULO  
-RESUMEN  
-COSTE APROXIMADO DEL VUELO  
-DÍA 1  
-DÍA 2  
-...  
-RECOMENDACIONES FINALES
+INSTRUCCIONES PARA EL PRESUPUESTO (OBLIGATORIO):
+Al final del itinerario, incluye EXACTAMENTE esta tabla HTML con estilos:
+
+## RESUMEN DE PRESUPUESTO
+
+<table style="width:100%; border-collapse: collapse; margin-top: 20px;">
+  <thead>
+    <tr style="background:#f0f0f0; border-bottom:2px solid #ccc;">
+      <th style="padding:8px; text-align:left;">Categoría</th>
+      <th style="padding:8px; text-align:left;">Coste (€)</th>
+      <th style="padding:8px; text-align:left;">Notas</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td style="padding:8px;">Vuelos internacionales</td><td style="padding:8px;">X</td><td style="padding:8px;">X</td></tr>
+    <tr style="background:#fafafa;"><td style="padding:8px;">Transporte entre destinos</td><td style="padding:8px;">X</td><td style="padding:8px;">X</td></tr>
+    <tr><td style="padding:8px;">Alojamiento</td><td style="padding:8px;">X</td><td style="padding:8px;">X</td></tr>
+    <tr style="background:#fafafa;"><td style="padding:8px;">Comidas</td><td style="padding:8px;">X</td><td style="padding:8px;">X</td></tr>
+    <tr><td style="padding:8px;">Actividades / Entradas</td><td style="padding:8px;">X</td><td style="padding:8px;">X</td></tr>
+    <tr style="background:#fafafa;"><td style="padding:8px;">Transporte local</td><td style="padding:8px;">X</td><td style="padding:8px;">X</td></tr>
+    <tr><td style="padding:8px;">Extras / imprevistos</td><td style="padding:8px;">X</td><td style="padding:8px;">X</td></tr>
+    <tr style="background:#e8f4ff; font-weight:bold;"><td style="padding:8px;">Regreso al origen</td><td style="padding:8px;">X</td><td style="padding:8px;">X</td></tr>
+    <tr style="background:#d0eaff; font-weight:bold;"><td style="padding:8px;">TOTAL</td><td style="padding:8px;">X</td><td style="padding:8px;">Suma total</td></tr>
+  </tbody>
+</table>
+
+Después de la tabla añade:
+
+## PRESUPUESTO POR DESTINO
+- DESTINO 1: X €
+- DESTINO 2: X €
+- DESTINO 3: X €
+
+## PRESUPUESTO DIARIO ESTIMADO
+X €/día por viajero
 `;
 
-  const completion = await client.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
-    messages: [{ role: "user", content: prompt }],
-  });
 
-  const texto = completion.choices[0].message.content;
 
-  // -----------------------------
-  // 2) Guardar itinerario en Supabase
-  // -----------------------------
-  await supabase.from("itineraries").insert({
-    travel_request_id: travelRequestId,
-    titulo: `Itinerario para ${solicitud.destino}`,
-    resumen: texto,
-    estado: "generado",
-  });
 
-  // -----------------------------
-  // 3) ENVIAR EMAIL AL USUARIO
-  // -----------------------------
-  console.log("🔑 API KEY:", process.env.RESEND_API_KEY);
 
-  const resend = new Resend(process.env.RESEND_API_KEY);
+    const client = new Groq({ apiKey: process.env.GROQ_API_KEY! });
 
-  const emailHtml = `
-  <div style="font-family: Arial; padding: 20px;">
-    <h2>¡Tu itinerario personalizado está listo! ✈️</h2>
-    <p>Hola,</p>
-    <p>Aquí tienes tu itinerario generado según tus preferencias:</p>
+    const completion = await client.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: prompt }],
+    });
 
-    <div style="white-space: pre-wrap; background: #f7f7f7; padding: 15px; border-radius: 8px; margin-top: 20px;">
-      ${texto}
-    </div>
+    const texto = completion.choices[0].message.content;
 
-    <p style="margin-top: 30px;">Si quieres modificar algo o pedir otro itinerario, aquí estoy.</p>
-    <p>Un abrazo,<br/>Tu asistente de viajes</p>
-  </div>
-  `;
-  console.log("📧 ENVIANDO EMAIL A:", solicitud.email);
+    await supabase.from("itineraries").insert({
+      travel_request_id: travelRequestId,
+      titulo: `Itinerario para ${destinosTexto}`,
+      resumen: texto,
+      estado: "generado",
+    });
 
-  await resend.emails.send({
-    from: "Viajes IA <onboarding@resend.dev>",
-    to: solicitud.email,
-    subject: `Tu itinerario personalizado para ${solicitud.destino}`,
-    html: emailHtml,
-  });
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
-  return NextResponse.json({ ok: true, enviado: solicitud.email });
+    await resend.emails.send({
+      from: "Viajes IA <onboarding@resend.dev>",
+      to: solicitud.email,
+      subject: `Tu itinerario para ${destinosTexto}`,
+      html: `<pre>${texto}</pre>`,
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("❌ ERROR EN /api/generar-itinerario:", err);
+    return NextResponse.json({ error: "Error generando itinerario" }, { status: 500 });
+  }
 }
