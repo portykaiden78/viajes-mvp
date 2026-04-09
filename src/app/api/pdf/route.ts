@@ -1,32 +1,58 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: Request) {
   const { id } = await req.json();
 
-  // 1. Obtener datos del itinerario
-  const origin = new URL(req.url).origin;
-  const data = await fetch(`${origin}/api/itinerario/${id}`).then(r => r.json());
+  // 1. Leer datos directamente desde Supabase
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
 
-  // 2. Construir HTML
+  const { data, error } = await supabase
+    .from("itineraries")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    console.error("Supabase error:", error);
+    return NextResponse.json({ error }, { status: 500 });
+  }
+
+  // 2. Generar HTML
   const html = `
     <html>
-      <body style="padding:40px;font-family:Arial">
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          body { font-family: Arial; padding: 40px; }
+          h1 { color: #333; }
+        </style>
+      </head>
+      <body>
         <h1>${data.titulo}</h1>
         <p>${data.resumen}</p>
       </body>
     </html>
   `;
 
-  // 3. Llamar a PDFLayer (o similar)
-  const pdfResponse = await fetch("https://api.pdflayer.com/api/convert", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      access_key: process.env.PDFLAYER_KEY,
-      document_html: html,
-      test: 1
-    })
-  });
+  // 3. Llamar a Supabase Edge Function
+  const pdfResponse = await fetch(
+    "https://bvmouupthxbjgnkarquv.supabase.co/functions/v1/generate-pdf",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ html }),
+    }
+  );
+
+  if (!pdfResponse.ok) {
+    const errorText = await pdfResponse.text();
+    console.error("Supabase PDF ERROR:", errorText);
+    return NextResponse.json({ error: errorText }, { status: 500 });
+  }
 
   const pdfBuffer = await pdfResponse.arrayBuffer();
 

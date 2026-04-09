@@ -17,7 +17,7 @@ body {
 }
 
 /* -------------------------------------------------------
-   GLASSMORPHISM
+   GLASSMORPHISM (GENERAL)
 ------------------------------------------------------- */
 
 .glass-card {
@@ -52,3 +52,168 @@ body {
     color: #f5f5f5;
   }
 }
+
+/* -------------------------------------------------------
+   ESTILOS PREMIUM PARA LA VERSIÓN IMPRIMIBLE
+------------------------------------------------------- */
+
+/* Portada */
+.cover {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background: linear-gradient(135deg, #4f46e5, #3b82f6);
+  color: white;
+  padding: 40px;
+}
+
+.cover-logo {
+  width: 120px;
+  height: 120px;
+  border-radius: 20px;
+  background: white;
+  margin-bottom: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 40px;
+  font-weight: bold;
+  color: #3b82f6;
+}
+
+.cover-title {
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  font-family: serif;
+}
+
+.cover-subtitle {
+  font-size: 20px;
+  opacity: 0.9;
+}
+
+/* Contenido */
+.page {
+  padding: 60px;
+  max-width: 900px;
+  margin: auto;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 40px;
+  margin-bottom: 40px;
+}
+
+/* Títulos premium */
+.page h1,
+.page h2,
+.page h3 {
+  font-family: serif;
+}
+
+/* -------------------------------------------------------
+   ESTILOS DE IMPRESIÓN
+------------------------------------------------------- */
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .cover {
+    page-break-after: always;
+  }
+
+  .glass {
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
+
+/* ---------------- TIMELINE ---------------- */
+
+.timeline {
+  position: relative;
+  margin-left: 20px;
+  padding-left: 20px;
+  border-left: 3px solid #3b82f6;
+}
+
+.timeline-item {
+  margin-bottom: 40px;
+  position: relative;
+}
+
+.timeline-dot {
+  width: 16px;
+  height: 16px;
+  background: #3b82f6;
+  border-radius: 50%;
+  position: absolute;
+  left: -11px;
+  top: 4px;
+}
+
+.timeline-content {
+  margin-left: 20px;
+}
+
+/* ---------------- ICON SECTIONS ---------------- */
+
+.icon-section {
+  margin-bottom: 50px;
+}
+
+.icon {
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 15px;
+  font-family: serif;
+}
+
+/* ---------------- DAY BLOCKS ---------------- */
+
+.day-block {
+  margin-bottom: 50px;
+  padding: 30px;
+  border-radius: 18px;
+}
+
+.day-title {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid rgba(0,0,0,0.15);
+  font-family: serif;
+}
+
+.day-content p {
+  margin-bottom: 10px;
+}
+
+/* Línea separadora elegante */
+.day-block::before {
+  content: "";
+  display: block;
+  height: 4px;
+  width: 100%;
+  background: linear-gradient(to right, #4f46e5, #3b82f6);
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
