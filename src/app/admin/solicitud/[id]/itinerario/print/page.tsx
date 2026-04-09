@@ -1,22 +1,25 @@
+import { headers } from "next/headers";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 export default async function PrintItinerary({ params }: any) {
   const { id } = params;
 
-  const origin =
-    process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
+  // Construir URL válida en local y producción
+  const host = headers().get("host");
+  const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
+  const baseUrl = `${protocol}://${host}`;
 
+  // Obtener itinerario
   const itinerarios = await fetch(
-    `${origin}/api/itinerario/${id}`,
+    `${baseUrl}/api/itinerario/${id}`,
     { cache: "no-store" }
   ).then(r => r.json());
 
   const itinerario = itinerarios?.[0];
 
+  // Obtener solicitud
   const solicitud = await fetch(
-    `${origin}/api/solicitud/${id}`,
+    `${baseUrl}/api/solicitud/${id}`,
     { cache: "no-store" }
   ).then(r => r.json());
 
@@ -24,13 +27,12 @@ export default async function PrintItinerary({ params }: any) {
     ? solicitud.destinos.join(", ")
     : solicitud?.destino || "No especificado";
 
-  // --- NUEVO: dividir el itinerario por días ---
+  // Dividir por días
   const raw = itinerario?.resumen || "";
-  const dias = raw.split(/(?=Día\s+\d+)/g); // divide antes de "Día X"
+  const dias = raw.split(/(?=Día\s+\d+)/g);
 
   return (
     <>
-      {/* Portada */}
       <section className="cover">
         <div className="cover-logo">✈️</div>
         <div className="cover-title">
@@ -39,24 +41,20 @@ export default async function PrintItinerary({ params }: any) {
         <div className="cover-subtitle">Destinos: {destinos}</div>
       </section>
 
-      {/* Contenido estructurado */}
       <section className="page">
         {dias.map((dia: string, index: number) => (
           <div key={index} className="day-block glass">
-            {/* Título del día */}
             {dia.match(/^Día\s+\d+.*$/m) && (
               <div className="day-title">
                 {dia.match(/^Día\s+\d+.*$/m)?.[0]}
               </div>
             )}
 
-            {/* Contenido del día */}
             <div className="day-content">
               <MarkdownRenderer content={dia.replace(/^Día\s+\d+.*$/m, "")} />
             </div>
           </div>
         ))}
-
       </section>
     </>
   );
