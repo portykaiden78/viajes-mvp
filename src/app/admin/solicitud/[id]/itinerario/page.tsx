@@ -1,14 +1,10 @@
-// VER itinerario (SERVER COMPONENT)
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 export default async function VerItinerario({ params }: any) {
   const { id } = params;
 
-  // URL robusta para local y producción
-  const origin =
-    process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
+  // URL correcta para local y producción
+  const origin = process.env.NEXT_PUBLIC_SITE_URL;
 
   // Obtener itinerarios (array)
   const itinerarios = await fetch(
@@ -52,7 +48,6 @@ export default async function VerItinerario({ params }: any) {
 
           <MarkdownRenderer content={itinerario.resumen} />
 
-          {/* BOTÓN PARA VERSIÓN IMPRIMIBLE */}
           <a
             href={`/admin/solicitud/${id}/itinerario/print`}
             target="_blank"
@@ -60,7 +55,6 @@ export default async function VerItinerario({ params }: any) {
           >
             Versión imprimible
           </a>
-          
         </div>
       )}
 
