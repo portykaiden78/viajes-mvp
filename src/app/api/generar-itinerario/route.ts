@@ -9,8 +9,6 @@ const supabase = createClient(
 );
 
 export async function POST(req: Request) {
-  console.log("🔥 EJECUTANDO ENDPOINT /api/generar-itinerario");
-
   try {
     const { travelRequestId } = await req.json();
 
@@ -50,7 +48,29 @@ export async function POST(req: Request) {
     const tipoViajeTexto = tipoViaje.join(", ");
 
     // --- PROMPT ---
-    const prompt = `... (tu prompt completo aquí, sin cambios) ...`;
+    const prompt = `
+Genera un itinerario de viaje detallado para los siguientes destinos, en este orden:
+${destinos.map((d, i) => `${i + 1}. ${d}`).join("\n")}
+
+DATOS DEL VIAJE:
+Origen: ${solicitud.origen}
+Fechas: ${solicitud.fecha_inicio} → ${solicitud.fecha_fin}
+Presupuesto total: ${solicitud.presupuesto}
+Tipo de viaje: ${tipoViajeTexto}
+Viajeros: ${solicitud.num_viajeros}
+Edades: ${(solicitud.edades || []).join(", ")}
+Ritmo: ${solicitud.ritmo_viaje}
+Gastronomía: ${solicitud.gastronomia}
+Intereses: ${Array.isArray(solicitud.intereses)
+        ? solicitud.intereses.join(", ")
+        : solicitud.intereses
+      }
+
+REGLA OBLIGATORIA: REGRESO AL ORIGEN
+...
+...
+`;
+
 
     // --- GROQ ---
     const client = new Groq({ apiKey: process.env.GROQ_API_KEY! });
