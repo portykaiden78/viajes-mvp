@@ -1,17 +1,11 @@
-import { headers } from "next/headers";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 export default async function PrintItinerary({ params }: any) {
   const { id } = params;
 
-  // Construir URL válida en local y producción
-  const host = headers().get("host");
-  const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
-  const baseUrl = `${protocol}://${host}`;
-
   // Obtener itinerario
   const itinerarios = await fetch(
-    `${baseUrl}/api/itinerario/${id}`,
+    `/api/itinerario/${id}`,
     { cache: "no-store" }
   ).then(r => r.json());
 
@@ -19,7 +13,7 @@ export default async function PrintItinerary({ params }: any) {
 
   // Obtener solicitud
   const solicitud = await fetch(
-    `${baseUrl}/api/solicitud/${id}`,
+    `/api/solicitud/${id}`,
     { cache: "no-store" }
   ).then(r => r.json());
 
