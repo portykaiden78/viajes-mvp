@@ -1,29 +1,30 @@
 // VER itinerario (SERVER COMPONENT)
-import { supabaseServer } from "@/lib/supabaseServer";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
-import DescargarPDFButton from "@/components/DescargarPDFButton";
 
 export default async function VerItinerario({ params }: any) {
-  const { id } = params; // UUID correcto
-  const supabase = supabaseServer();
+  const { id } = params;
 
-  // Buscar itinerario por UUID
-  const { data: itinerarios } = await supabase
-    .from("itineraries")
-    .select("*")
-    .eq("travel_request_id", id)
-    .order("created_at", { ascending: false })
-    .limit(1);
+  // URL robusta para local y producción
+  const origin =
+    process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000";
+
+  // Obtener itinerarios (array)
+  const itinerarios = await fetch(
+    `${origin}/api/itinerario/${id}`,
+    { cache: "no-store" }
+  ).then(r => r.json());
 
   const itinerario = itinerarios?.[0];
 
-  // Buscar solicitud
-  const { data: solicitud } = await supabase
-    .from("travel_requests")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
+  // Obtener solicitud
+  const solicitud = await fetch(
+    `${origin}/api/solicitud/${id}`,
+    { cache: "no-store" }
+  ).then(r => r.json());
 
+  // Procesar destinos
   let destinos: string[] = [];
 
   if (Array.isArray(solicitud?.destinos)) destinos = solicitud.destinos;
@@ -32,7 +33,8 @@ export default async function VerItinerario({ params }: any) {
     catch { destinos = [solicitud.destinos]; }
   } else if (solicitud?.destino) destinos = [solicitud.destino];
 
-  const destinosTexto = destinos.length > 0 ? destinos.join(", ") : "No especificado";
+  const destinosTexto =
+    destinos.length > 0 ? destinos.join(", ") : "No especificado";
 
   return (
     <main className="max-w-3xl mx-auto py-20 px-4 text-black">
@@ -50,9 +52,15 @@ export default async function VerItinerario({ params }: any) {
 
           <MarkdownRenderer content={itinerario.resumen} />
 
-          {/* BOTÓN PARA DESCARGAR PDF */}
-          <DescargarPDFButton id={itinerario.id} />
-
+          {/* BOTÓN PARA VERSIÓN IMPRIMIBLE */}
+          <a
+            href={`/admin/solicitud/${id}/itinerario/print`}
+            target="_blank"
+            className="mt-4 inline-block bg-purple-600 text-white px-6 py-3 rounded"
+          >
+            Versión imprimible
+          </a>
+          
         </div>
       )}
 

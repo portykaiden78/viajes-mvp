@@ -11,15 +11,15 @@ export async function GET(
   );
 
   const { data, error } = await supabase
-    .from("itineraries")
+    .from("travel_requests")
     .select("*")
-    .eq("travel_request_id", params.id)
-    .order("created_at", { ascending: false });
+    .eq("id", params.id)
+    .maybeSingle();
 
   if (error) {
-    console.error("API /itinerario error:", error);
+    console.error("API /solicitud error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json(data ?? []);
+  return NextResponse.json(data);
 }
