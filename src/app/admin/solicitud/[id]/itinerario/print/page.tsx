@@ -3,9 +3,11 @@ import MarkdownRenderer from "@/components/MarkdownRenderer";
 export default async function PrintItinerary({ params }: any) {
   const { id } = params;
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
+
   // Obtener itinerario
   const itinerarios = await fetch(
-    `/api/itinerario/${id}`,
+    `${baseUrl}/api/itinerario/${id}`,
     { cache: "no-store" }
   ).then(r => r.json());
 
@@ -13,7 +15,7 @@ export default async function PrintItinerary({ params }: any) {
 
   // Obtener solicitud
   const solicitud = await fetch(
-    `/api/solicitud/${id}`,
+    `${baseUrl}/api/solicitud/${id}`,
     { cache: "no-store" }
   ).then(r => r.json());
 
@@ -21,7 +23,6 @@ export default async function PrintItinerary({ params }: any) {
     ? solicitud.destinos.join(", ")
     : solicitud?.destino || "No especificado";
 
-  // Dividir por días
   const raw = itinerario?.resumen || "";
   const dias = raw.split(/(?=Día\s+\d+)/g);
 
