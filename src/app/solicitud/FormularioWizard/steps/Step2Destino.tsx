@@ -89,10 +89,13 @@ export default function Step2Destino({
           <button
             type="button"
             onClick={addDestinoManual}
-            className="px-4 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
+            className="w-12 h-12 flex items-center justify-center rounded-xl 
+             bg-blue-600 text-white text-2xl font-bold 
+             hover:bg-blue-700 transition"
           >
-            Añadir
+            +
           </button>
+
         </div>
 
         {error && (
