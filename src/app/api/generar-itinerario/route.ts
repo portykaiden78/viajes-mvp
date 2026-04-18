@@ -49,27 +49,151 @@ export async function POST(req: Request) {
 
     // --- PROMPT ---
     const prompt = `
-Genera un itinerario de viaje detallado para los siguientes destinos, en este orden:
-${destinos.map((d, i) => `${i + 1}. ${d}`).join("\n")}
-
-DATOS DEL VIAJE:
-Origen: ${solicitud.origen}
-Fechas: ${solicitud.fecha_inicio} → ${solicitud.fecha_fin}
-Presupuesto total: ${solicitud.presupuesto}
-Tipo de viaje: ${tipoViajeTexto}
-Viajeros: ${solicitud.num_viajeros}
-Edades: ${(solicitud.edades || []).join(", ")}
-Ritmo: ${solicitud.ritmo_viaje}
-Gastronomía: ${solicitud.gastronomia}
-Intereses: ${Array.isArray(solicitud.intereses)
+    FORMATO DEL RESUMEN PRINCIPAL (OBLIGATORIO):
+    - Cada concepto debe ir en una línea nueva.
+    - Debe haber SIEMPRE un salto de línea adicional entre conceptos (dos saltos de línea en Markdown).
+    - PROHIBIDO juntar varios conceptos en una sola línea.
+    Ejemplo:
+    
+    Itinerario de Viaje: París
+    
+    Fecha de Salida: 2026-04-25
+    
+    Fecha de Regreso: 2026-04-26
+    
+    Origen: Barcelona
+    
+    Destino(s): París
+    
+    Presupuesto: Medio
+    
+    Tipo de Viaje: Aventura
+    
+    Viajeros: 1
+    
+    Edad(es): 43
+    
+    Ritmo: Moderado
+    
+    Gastronomía: Local
+    
+    Alojamiento: Hotel 4 estrellas
+    
+    Intereses: Montaña
+    
+    Después de este bloque, deja UNA línea en blanco antes de empezar el itinerario.
+    
+  
+    FORMATO DEL ITINERARIO POR DÍAS (OBLIGATORIO):
+    - Divide SIEMPRE el itinerario por días, aunque solo haya 1 día.
+    - Día 1 abarca desde la hora de salida hasta las 23:59.
+    - Día 2 empieza a las 00:00, y así sucesivamente.
+    - Cada día debe empezar con un título así:
+    
+    ## **Día X: [FECHA]**
+    
+    FORMATO DE HORAS (OBLIGATORIO):
+    - Cada hora debe ir en negrita: **08:00**, **11:30**, etc.
+    - Cada actividad debe ir SIEMPRE en una línea nueva.
+    - Debe haber SIEMPRE un salto de línea adicional entre actividades (dos saltos de línea en total).
+    - PROHIBIDO juntar varias actividades en un mismo párrafo.
+    Ejemplo correcto:
+    
+    **08:00**: Actividad 1
+    
+    **10:30**: Actividad 2
+    
+    **13:00**: Actividad 3
+    
+    ------------------------------------------------------------
+    
+    SECCIÓN FINAL: REGRESO AL ORIGEN (OBLIGATORIA)
+    Después de terminar el último día del itinerario, crea una sección completamente separada llamada:
+    
+    ## **REGRESO AL ORIGEN**
+    
+    Esta sección NO debe aparecer dentro del último día. Debe ir SIEMPRE al final del documento, antes del presupuesto.
+    
+    FORMATO DE REGRESO AL ORIGEN:
+    - Cada frase debe ir en una línea nueva.
+    - Debe haber un salto de línea adicional entre frases.
+    Ejemplo:
+    
+    Medio de transporte recomendado: Taxi
+    
+    Coste aproximado: 50-70€
+    
+    Duración del trayecto: 1 hora
+    
+    Horario recomendado: 14:00
+    
+    Consejos finales: Asegúrate de llevar documentos y equipaje
+    
+    ------------------------------------------------------------
+    
+    FORMATO DEL PRESUPUESTO (OBLIGATORIO):
+    - Analiza todas las actividades, comidas, transportes y entradas mencionadas en el itinerario.
+    - Calcula el coste real aproximado de cada categoría.
+    - NO uses valores "X". Debes poner números reales basados en el itinerario.
+    - Usa esta tabla HTML premium:
+    
+    ## **RESUMEN DE PRESUPUESTO**
+    
+    <table style="width:100%; border-collapse: collapse; margin-top: 20px; font-size: 15px;">
+      <thead>
+        <tr style="background:#e3e3e3; border-bottom:3px solid #999;">
+          <th style="padding:10px; text-align:left; border-right:2px solid #ccc;">Categoría</th>
+          <th style="padding:10px; text-align:left; border-right:2px solid #ccc;">Coste (€)</th>
+          <th style="padding:10px; text-align:left;">Notas</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Rellena con importes reales -->
+      </tbody>
+    </table>
+    
+    Después de la tabla añade, siempre como secciones separadas y al final del documento:
+    
+    ## **PRESUPUESTO POR DESTINO**
+    - [DESTINO 1]: X €
+    - [DESTINO 2]: X €
+    - ...
+    
+    ## **PRESUPUESTO DIARIO ESTIMADO**
+    X €/día por viajero
+    
+    Las secciones **REGRESO AL ORIGEN**, **RESUMEN DE PRESUPUESTO**, **PRESUPUESTO POR DESTINO** y **PRESUPUESTO DIARIO ESTIMADO** deben ir SIEMPRE al final del documento, separadas del itinerario diario.
+    
+    ------------------------------------------------------------
+    
+    DATOS DEL VIAJE PARA GENERAR EL ITINERARIO:
+    
+    Destinos en orden:
+    ${destinos.map((d: string, i: number) => `${i + 1}. ${d}`).join("\n")}
+    
+    Origen: ${solicitud.origen}
+    Fecha de salida: ${solicitud.fecha_inicio}
+    Fecha de regreso: ${solicitud.fecha_fin}
+    Presupuesto total: ${solicitud.presupuesto}
+    Tipo de viaje: ${tipoViajeTexto}
+    Viajeros: ${solicitud.num_viajeros}
+    Edades: ${(solicitud.edades || []).join(", ")}
+    Ritmo: ${solicitud.ritmo_viaje}
+    Gastronomía: ${solicitud.gastronomia}
+    Alojamiento: ${String(solicitud.alojamiento || "")
+  .replace(/[-–—]{3,}/g, "")
+  .replace(/\s+/g, " ")
+  .trim()}
+    Intereses: ${
+      Array.isArray(solicitud.intereses)
         ? solicitud.intereses.join(", ")
         : solicitud.intereses
-      }
-
-REGLA OBLIGATORIA: REGRESO AL ORIGEN
-...
-...
+    }
+    
+    Genera el itinerario siguiendo TODAS las reglas anteriores.
+    
 `;
+
 
 
     // --- GROQ ---

@@ -46,7 +46,7 @@ export default async function VerItinerario({ params }: any) {
             {itinerario.titulo || `Itinerario para ${destinosTexto}`}
           </h2>
 
-          <MarkdownRenderer content={itinerario.resumen} />
+          <MarkdownRenderer content={itinerario.resumen.replace(/\n\+/g, "\n\n+")} />
 
           <a
             href={`/admin/solicitud/${id}/itinerario/print`}
