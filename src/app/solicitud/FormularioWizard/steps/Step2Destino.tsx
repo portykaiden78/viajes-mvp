@@ -77,14 +77,15 @@ export default function Step2Destino({
       <div className="space-y-2">
         <div className="flex gap-2">
           <input
-            className="flex-1 px-4 py-3 rounded-xl border border-gray-300 
-                       bg-white text-gray-900 shadow-sm
-                       focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                       transition-all"
+            className="flex-1 h-12 px-3 rounded-xl border border-gray-300 
+             bg-white text-gray-900 shadow-sm
+             focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+             transition-all overflow-hidden text-ellipsis whitespace-nowrap"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Añadir destino manualmente"
           />
+
 
           <button
             type="button"
