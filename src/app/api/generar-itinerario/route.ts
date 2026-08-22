@@ -227,7 +227,7 @@ Genera el itinerario siguiendo TODAS las reglas anteriores.
     const client = new Groq({ apiKey: process.env.GROQ_API_KEY! });
 
     const completion = await client.chat.completions.create({
-      model: "llama-3.1-70b-versatile",
+      model: "llama-3.1-70b-specdec", 
       messages: [{ role: "user", content: prompt }],
     });
 
