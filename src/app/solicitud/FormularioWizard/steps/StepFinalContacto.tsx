@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { StepPropsContacto } from "../types";
 
 type StepFinalContactoProps = StepPropsContacto & {
@@ -15,6 +16,7 @@ export default function StepFinalContacto({
   theme = "light",
 }: StepFinalContactoProps) {
 
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const isValid =
@@ -36,11 +38,28 @@ export default function StepFinalContacto({
 
   const handleSubmit = async () => {
     if (!isValid) return;
+
     setLoading(true);
 
     // Delay suave para mostrar el spinner
-    setTimeout(() => {
-      onSubmit();
+    setTimeout(async () => {
+      // Llamamos a onSubmit y tratamos su posible retorno de forma segura.
+      // onSubmit puede devolver un ID (string) o no devolver nada (void).
+      // Hacemos una llamada y comprobamos el tipo antes de usarlo.
+      try {
+        // Forzamos el tipo de llamada de forma segura para aceptar ambos casos.
+        const maybeResult = await (onSubmit as unknown as () => Promise<string | undefined>)();
+
+        // Si el resultado es string lo usamos, si no, usamos cadena vacía.
+        const itineraryId = typeof maybeResult === "string" ? maybeResult : "";
+
+        // Redirigimos a la versión imprimible (si itineraryId es "", irá a /print/)
+        router.push(`/print/${itineraryId}`);
+      } catch (err) {
+        // En caso de error, redirigimos igualmente o puedes manejar el error aquí
+        console.error("Error en onSubmit:", err);
+        router.push(`/print/`);
+      }
     }, 300);
   };
 
