@@ -78,19 +78,6 @@ export default function Step9Intereses({
             </button>
           );
         })}
-
-        {/* Botón "Otro" */}
-        <button
-          type="button"
-          onClick={() => toggle("Otro")}
-          className={`px-4 py-3 rounded-xl border text-sm font-medium transition-all shadow-sm
-            ${form.intereses.includes("Otro")
-              ? "bg-blue-600 text-white border-blue-600 shadow-md scale-[1.02]"
-              : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
-            }`}
-        >
-          Otro
-        </button>
       </div>
 
       {/* Input para añadir conceptos personalizados */}
